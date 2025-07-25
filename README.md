@@ -6,7 +6,7 @@
 
 - **Linux**: x86_64, ARM64(树莓派之类的）
 - **macOS**: intel(x86_64), AppleSilicon(arm64)
-- 🐳 **Docker支持**: linux/amd64, linux/arm64
+- **Docker支持**: linux/amd64, linux/arm64
 
 ## 工作原理
 
@@ -203,39 +203,6 @@ dig @127.0.0.1 6.ipw.cn AAAA
 dig @127.0.0.1 google.com A
 ```
 
-## 部署选项
-
-### 方式一：自动部署脚本（推荐）
-适用于Linux服务器，自动安装systemd服务：
-```bash
-wget https://raw.githubusercontent.com/TING-HiuYu/IPv6Filter/main/deploy.sh
-chmod +x deploy.sh
-sudo ./deploy.sh
-```
-
-### 方式二：Docker部署
-```bash
-# 基本部署
-docker run -d \
-  --name ipv6filter \
-  -p 53:53/udp \
-  --restart unless-stopped \
-  ghcr.io/ting-hiuyu/ipv6filter:latest
-
-# 自定义上游DNS
-docker run -d \
-  --name ipv6filter \
-  -p 53:53/udp \
-  -e UPSTREAM_DNS="1.1.1.1:53,8.8.8.8:53" \
-  --restart unless-stopped \
-  ghcr.io/ting-hiuyu/ipv6filter:latest
-```
-
-### 方式三：手动二进制部署
-1. 从[Releases页面](https://github.com/TING-HiuYu/IPv6Filter/releases)下载对应平台的二进制文件
-2. 推荐下载`ipv6filter-linux-x86_64-musl`（静态链接，无依赖）
-3. 设置执行权限并运行
-
 ## 开发
 
 ### 本地构建
@@ -252,15 +219,11 @@ cargo build --release
 sudo ./target/release/ipv6filter
 ```
 
-### 跨平台编译
-
-查看[BUILD.md](BUILD.md)了解如何使用GitHub Actions进行自动构建。
-
 ## 系统要求
 
 - **内存**: 最少16MB RAM
-- **网络**: 53/UDP端口访问权限
-- **权限**: 需要root权限绑定53端口（或使用非特权端口）
+- **网络**: 推荐53/UDP端口访问权限
+- **权限**: 推荐使用root权限绑定53端口（或使用非特权端口）
 
 ## 许可证
 
