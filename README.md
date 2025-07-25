@@ -242,12 +242,12 @@ sudo ./target/release/ipv6filter
 
 MIT License
 
-## AI声明
-
-项目中的Github Action和md文件是用AI生成的
+## 说明
 
 欢迎提交Issue和Pull Request！
 
-## 说明
-
 本项目专门用于解决双栈网络环境下IPv6连接速度慢的问题。通过智能过滤双栈域名的AAAA记录，可以强制使用IPv4连接，提升网络访问速度，同时保留纯IPv6网站的正常访问。
+
+## AI声明
+
+项目中的Github Action和md文件是用AI生成的
