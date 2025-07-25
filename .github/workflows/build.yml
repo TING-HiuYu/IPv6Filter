@@ -20,26 +20,26 @@ jobs:
           # Linux x86_64 (for Debian server)
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: dns-server
-            asset_name: dns-server-linux-x86_64
+            artifact_name: ipv6filter
+            asset_name: ipv6filter-linux-x86_64
           
           # Linux x86_64 with musl (static linking)
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            artifact_name: dns-server
-            asset_name: dns-server-linux-x86_64-musl
+            artifact_name: ipv6filter
+            asset_name: ipv6filter-linux-x86_64-musl
           
           # macOS ARM64 (for your M4 Mac)
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact_name: dns-server
-            asset_name: dns-server-macos-arm64
+            artifact_name: ipv6filter
+            asset_name: ipv6filter-macos-arm64
           
           # macOS Intel
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: dns-server
-            asset_name: dns-server-macos-x86_64
+            artifact_name: ipv6filter
+            asset_name: ipv6filter-macos-x86_64
 
     steps:
     - name: Checkout code

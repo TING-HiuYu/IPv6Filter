@@ -7,10 +7,10 @@ set -e
 
 # 配置变量
 RELEASE_URL="https://github.com/TING-HiuYu/IPv6Filter/releases/latest"
-BINARY_NAME="dns-server-linux-x86_64-musl"
+BINARY_NAME="ipv6filter-linux-x86_64-musl"
 INSTALL_DIR="/usr/local/bin"
-CONFIG_DIR="/etc/dns-server"
-SERVICE_NAME="dns-server"
+CONFIG_DIR="/etc/ipv6filter"
+SERVICE_NAME="ipv6filter"
 
 # 颜色输出
 RED='\033[0;31m'
@@ -86,7 +86,7 @@ download_binary() {
 
 # 安装二进制文件
 install_binary() {
-    log_info "安装DNS服务器到 ${INSTALL_DIR}..."
+    log_info "安装IPv6Filter到 ${INSTALL_DIR}..."
     
     # 停止现有服务（如果存在）
     if systemctl is-active --quiet "$SERVICE_NAME"; then
@@ -95,8 +95,8 @@ install_binary() {
     fi
     
     # 安装二进制文件
-    cp "/tmp/${BINARY_NAME}" "${INSTALL_DIR}/dns-server"
-    chmod +x "${INSTALL_DIR}/dns-server"
+    cp "/tmp/${BINARY_NAME}" "${INSTALL_DIR}/ipv6filter"
+    chmod +x "${INSTALL_DIR}/ipv6filter"
     
     # 创建配置目录
     mkdir -p "$CONFIG_DIR"
@@ -109,7 +109,7 @@ create_config() {
     log_info "创建配置文件..."
     
     cat > "${CONFIG_DIR}/config.toml" << 'EOF'
-# DNS服务器配置
+# IPv6Filter DNS服务器配置
 
 [server]
 # 监听地址和端口
@@ -147,15 +147,15 @@ create_service() {
     
     cat > "/etc/systemd/system/${SERVICE_NAME}.service" << EOF
 [Unit]
-Description=Smart DNS Server with IPv6 Filtering
+Description=IPv6Filter - Smart DNS Server with IPv6 Filtering
 After=network.target
 Wants=network.target
 
 [Service]
 Type=simple
-User=dns-server
-Group=dns-server
-ExecStart=${INSTALL_DIR}/dns-server
+User=ipv6filter
+Group=ipv6filter
+ExecStart=${INSTALL_DIR}/ipv6filter
 WorkingDirectory=${CONFIG_DIR}
 Environment=RUST_LOG=info
 Restart=always
@@ -178,14 +178,14 @@ CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 WantedBy=multi-user.target
 EOF
     
-    # 创建dns-server用户
-    if ! id "dns-server" &>/dev/null; then
-        /usr/sbin/useradd -r -s /bin/false dns-server
-        log_info "已创建dns-server用户"
+    # 创建ipv6filter用户
+    if ! id "ipv6filter" &>/dev/null; then
+        /usr/sbin/useradd -r -s /bin/false ipv6filter
+        log_info "已创建ipv6filter用户"
     fi
     
     # 设置权限
-    chown -R dns-server:dns-server "$CONFIG_DIR"
+    chown -R ipv6filter:ipv6filter "$CONFIG_DIR"
     
     # 重载systemd
     systemctl daemon-reload
@@ -195,18 +195,18 @@ EOF
 
 # 启动服务
 start_service() {
-    log_info "启动DNS服务器..."
+    log_info "启动IPv6Filter服务..."
     
     systemctl enable "$SERVICE_NAME"
     systemctl start "$SERVICE_NAME"
     
     # 检查服务状态
     if systemctl is-active --quiet "$SERVICE_NAME"; then
-        log_info "DNS服务器启动成功！"
+        log_info "IPv6Filter服务启动成功！"
         log_info "服务状态: $(systemctl is-active $SERVICE_NAME)"
         log_info "监听端口: 53"
     else
-        log_error "DNS服务器启动失败"
+        log_error "IPv6Filter服务启动失败"
         log_info "查看日志: journalctl -u $SERVICE_NAME -f"
         exit 1
     fi
@@ -214,7 +214,7 @@ start_service() {
 
 # 显示使用信息
 show_usage() {
-    log_info "DNS服务器部署完成！"
+    log_info "IPv6Filter部署完成！"
     echo
     echo "常用命令:"
     echo "  查看状态: systemctl status $SERVICE_NAME"
@@ -223,7 +223,7 @@ show_usage() {
     echo "  停止服务: systemctl stop $SERVICE_NAME"
     echo "  编辑配置: nano ${CONFIG_DIR}/config.toml"
     echo
-    echo "测试DNS服务器:"
+    echo "测试IPv6Filter服务:"
     echo "  dig @localhost google.com A"
     echo "  dig @localhost facebook.com AAAA"
     echo
@@ -232,7 +232,7 @@ show_usage() {
 
 # 主函数
 main() {
-    log_info "开始部署DNS服务器..."
+    log_info "开始部署IPv6Filter..."
     
     check_root
     check_architecture

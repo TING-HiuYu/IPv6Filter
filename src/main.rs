@@ -1,13 +1,110 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::Arc;
+use std::path::PathBuf;
+use std::fs;
 
-use anyhow::Result;
-use log::{debug, info, warn};
+use anyhow::{Result, Context};
+use log::{debug, info, warn, error};
+use serde::{Deserialize, Serialize};
 use tokio::net::UdpSocket;
 use trust_dns_proto::op::{Message, OpCode, ResponseCode};
 use trust_dns_proto::rr::{Name, RData, Record, RecordType};
 use trust_dns_resolver::config::{ResolverConfig, ResolverOpts};
 use trust_dns_resolver::TokioAsyncResolver;
+
+/// 配置文件结构
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Config {
+    pub server: ServerConfig,
+    pub filtering: FilteringConfig,
+    pub logging: LoggingConfig,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ServerConfig {
+    pub listen_addr: String,
+    pub upstream_servers: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct FilteringConfig {
+    pub enabled: bool,
+    pub strategy: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct LoggingConfig {
+    pub level: String,
+    pub enable_stats: bool,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            server: ServerConfig {
+                listen_addr: "0.0.0.0:53".to_string(),
+                upstream_servers: vec![
+                    "223.5.5.5:53".to_string(),
+                    "114.114.114.114:53".to_string(),
+                    "8.8.8.8:53".to_string(),
+                ],
+            },
+            filtering: FilteringConfig {
+                enabled: true,
+                strategy: "dual_stack_only".to_string(),
+            },
+            logging: LoggingConfig {
+                level: "info".to_string(),
+                enable_stats: true,
+            },
+        }
+    }
+}
+
+/// 获取配置文件路径
+fn get_config_path() -> PathBuf {
+    if cfg!(target_os = "linux") {
+        PathBuf::from("/etc/ipv6filter/config.toml")
+    } else if cfg!(target_os = "windows") {
+        // Windows: 可执行文件同目录
+        std::env::current_exe()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .parent()
+            .unwrap_or(&PathBuf::from("."))
+            .join("config.toml")
+    } else if cfg!(target_os = "macos") {
+        // macOS: 可执行文件同目录
+        std::env::current_exe()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .parent()
+            .unwrap_or(&PathBuf::from("."))
+            .join("config.toml")
+    } else {
+        // 其他系统: 当前目录
+        PathBuf::from("config.toml")
+    }
+}
+
+/// 加载配置文件
+fn load_config() -> Result<Config> {
+    let config_path = get_config_path();
+    
+    info!("尝试加载配置文件: {}", config_path.display());
+    
+    if config_path.exists() {
+        let content = fs::read_to_string(&config_path)
+            .with_context(|| format!("无法读取配置文件: {}", config_path.display()))?;
+        
+        let config: Config = toml::from_str(&content)
+            .with_context(|| format!("配置文件格式错误: {}", config_path.display()))?;
+        
+        info!("成功加载配置文件");
+        Ok(config)
+    } else {
+        warn!("配置文件不存在，使用默认配置: {}", config_path.display());
+        Ok(Config::default())
+    }
+}
 
 /// DNS服务器配置
 #[derive(Clone)]
@@ -20,16 +117,25 @@ pub struct DnsServerConfig {
     pub filter_ipv6: bool,
 }
 
-impl Default for DnsServerConfig {
-    fn default() -> Self {
-        Self {
-            listen_addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 53),
-            upstream_servers: vec![
-                "8.8.8.8:53".parse().unwrap(),
-                "8.8.4.4:53".parse().unwrap(),
-            ],
-            filter_ipv6: true,
+impl TryFrom<Config> for DnsServerConfig {
+    type Error = anyhow::Error;
+    
+    fn try_from(config: Config) -> Result<Self> {
+        let listen_addr = config.server.listen_addr.parse()
+            .with_context(|| format!("无效的监听地址: {}", config.server.listen_addr))?;
+        
+        let mut upstream_servers = Vec::new();
+        for server in config.server.upstream_servers {
+            let addr = server.parse()
+                .with_context(|| format!("无效的上游服务器地址: {}", server))?;
+            upstream_servers.push(addr);
         }
+        
+        Ok(Self {
+            listen_addr,
+            upstream_servers,
+            filter_ipv6: config.filtering.enabled,
+        })
     }
 }
 
@@ -231,19 +337,24 @@ impl Clone for DnsServer {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // 初始化日志
     env_logger::init();
 
-    let config = DnsServerConfig {
-        listen_addr: "127.0.0.1:8053".parse()?, // 使用8053端口避免权限问题
-        ..Default::default()
-    };
+    info!("IPv6Filter DNS服务器启动中...");
+    
+    // 加载配置
+    let config = load_config().context("无法加载配置")?;
+    let server_config = DnsServerConfig::try_from(config.clone()).context("配置转换失败")?;
 
-    info!("启动DNS服务器配置:");
-    info!("  监听地址: {}", config.listen_addr);
-    info!("  上游服务器: {:?}", config.upstream_servers);
-    info!("  过滤IPv6: {}", config.filter_ipv6);
+    info!("IPv6Filter DNS服务器配置:");
+    info!("  监听地址: {}", server_config.listen_addr);
+    info!("  上游服务器: {:?}", server_config.upstream_servers);
+    info!("  IPv6过滤: {}", server_config.filter_ipv6);
+    info!("  配置文件: {}", get_config_path().display());
 
-    let server = DnsServer::new(config)?;
+    let server = DnsServer::new(server_config)?;
+    
+    info!("IPv6Filter DNS服务器启动成功！");
     server.start().await?;
 
     Ok(())

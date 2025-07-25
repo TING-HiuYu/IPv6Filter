@@ -1,5 +1,5 @@
 [package]
-name = "dns-server"
+name = "ipv6filter"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.82"
@@ -13,3 +13,5 @@ trust-dns-resolver = "0.23"
 anyhow = "1.0"
 log = "0.4"
 env_logger = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
