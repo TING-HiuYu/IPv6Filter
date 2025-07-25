@@ -118,24 +118,6 @@ cargo build --release
 sudo ./target/release/dns-server
 ```
 
-### 跨平台编译
-
-查看[BUILD.md](BUILD.md)了解如何使用GitHub Actions进行自动构建。
-
-## 系统要求
-
-- **内存**: 最少16MB RAM
-- **网络**: 53/UDP端口访问权限
-- **权限**: 需要root权限绑定53端口
-
 ## 许可证
 
 MIT License
-
-## 贡献
-
-欢迎提交Issue和Pull Request！
-
-## 说明
-
-本项目专门用于解决双栈网络环境下IPv6连接速度慢的问题。通过智能过滤双栈域名的AAAA记录，可以强制使用IPv4连接，提升网络访问速度，同时保留纯IPv6网站的正常访问。
