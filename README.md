@@ -23,7 +23,7 @@
 
 ### 使用预编译二进制文件
 
-1. 从[Releases页面](https://github.com/YOUR_USERNAME/DNS/releases)下载适合你系统的二进制文件
+1. 从[Releases页面](https://github.com/TING-HiuYu/IPv6Filter/releases)下载适合你系统的二进制文件
 2. 配置`config.toml`文件
 3. 运行DNS服务器
 
@@ -31,7 +31,7 @@
 
 ```bash
 # 下载并运行部署脚本
-wget https://raw.githubusercontent.com/YOUR_USERNAME/DNS/main/deploy.sh
+wget https://raw.githubusercontent.com/TING-HiuYu/IPv6Filter/main/deploy.sh
 chmod +x deploy.sh
 sudo ./deploy.sh
 ```
@@ -43,7 +43,7 @@ docker run -d \
   --name dns-server \
   -p 53:53/udp \
   --restart unless-stopped \
-  ghcr.io/YOUR_USERNAME/dns:latest
+  ghcr.io/ting-hiuyu/ipv6filter:latest
 ```
 
 ## 配置说明
@@ -108,8 +108,8 @@ dig @127.0.0.1 google.com A
 
 ```bash
 # 克隆仓库
-git clone https://github.com/YOUR_USERNAME/DNS.git
-cd DNS
+git clone https://github.com/TING-HiuYu/IPv6Filter.git
+cd IPv6Filter
 
 # 构建
 cargo build --release

@@ -6,7 +6,7 @@
 set -e
 
 # 配置变量
-RELEASE_URL="https://github.com/YOUR_USERNAME/DNS/releases/latest"
+RELEASE_URL="https://github.com/TING-HiuYu/IPv6Filter/releases/latest"
 BINARY_NAME="dns-server-linux-x86_64-musl"
 INSTALL_DIR="/usr/local/bin"
 CONFIG_DIR="/etc/dns-server"

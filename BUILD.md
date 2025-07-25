@@ -17,7 +17,7 @@ git add .
 git commit -m "Initial commit: Smart DNS Server with IPv6 filtering"
 
 # 添加远程仓库（替换YOUR_USERNAME为你的GitHub用户名）
-git remote add origin https://github.com/YOUR_USERNAME/DNS.git
+git remote add origin https://github.com/TING-HiuYu/IPv6Filter.git
 
 # 推送到GitHub
 git push -u origin main
@@ -46,7 +46,7 @@ GitHub Actions会自动构建以下版本：
 
 ```bash
 # 下载二进制文件
-wget https://github.com/YOUR_USERNAME/DNS/releases/latest/download/dns-server-linux-x86_64-musl
+wget https://github.com/TING-HiuYu/IPv6Filter/releases/latest/download/dns-server-linux-x86_64-musl
 
 # 重命名并设置权限
 mv dns-server-linux-x86_64-musl dns-server
@@ -66,7 +66,7 @@ sudo ./dns-server
 
 ```bash
 # 下载部署脚本
-wget https://raw.githubusercontent.com/YOUR_USERNAME/DNS/main/deploy.sh
+wget https://raw.githubusercontent.com/TING-HiuYu/IPv6Filter/main/deploy.sh
 
 # 设置权限
 chmod +x deploy.sh
@@ -87,14 +87,14 @@ sudo ./deploy.sh
 
 ```bash
 # 拉取镜像
-docker pull ghcr.io/YOUR_USERNAME/dns:latest
+docker pull ghcr.io/ting-hiuyu/ipv6filter:latest
 
 # 运行容器
 docker run -d \
   --name dns-server \
   -p 53:53/udp \
   --restart unless-stopped \
-  ghcr.io/YOUR_USERNAME/dns:latest
+  ghcr.io/ting-hiuyu/ipv6filter:latest
 ```
 
 ## 构建状态

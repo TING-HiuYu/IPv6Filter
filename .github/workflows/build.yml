@@ -48,6 +48,7 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
       with:
+        toolchain: 1.82
         targets: ${{ matrix.target }}
 
     - name: Install cross-compilation tools (Linux musl)
@@ -94,7 +95,8 @@ jobs:
     needs: [build, test]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
-    
+    permissions:
+      contents: write
     steps:
     - name: Download all artifacts
       uses: actions/download-artifact@v4
