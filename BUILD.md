@@ -1,23 +1,39 @@
-# 自动构建说明
+# 构建说明
+
+## 项目结构
+
+```
+IPv6Filter/
+├── src/
+│   └── main.rs              # 独立版本主程序（支持跨平台配置文件）
+├── docker_related/
+│   ├── main_docker.rs       # Docker版本主程序（支持环境变量）
+│   ├── Dockerfile           # Docker构建文件
+│   └── docker-entrypoint.sh # Docker启动脚本
+├── .github/workflows/
+│   ├── build.yml           # 多平台构建工作流
+│   └── docker.yml          # Docker镜像构建工作流
+└── config.toml             # 默认配置文件
+```
+
+## 版本差异
+
+### 独立版本 (`src/main.rs`)
+- 适用于直接在系统上运行
+- 支持跨平台配置文件路径检测
+- Linux: `/etc/ipv6filter/config.toml`
+- Windows/macOS: `可执行文件目录/config.toml`
+
+### Docker版本 (`docker_related/main_docker.rs`)
+- 专为容器化部署设计
+- 支持环境变量配置：`UPSTREAM_DNS`、`LISTEN_ADDR`、`FILTER_ENABLED`
+- 自动生成配置文件或使用环境变量
 
 ## 使用GitHub Actions自动构建
 
-### 1. 将项推荐使用静态链接版本 `ipv6filter-linux-x86_64-musl`：
+### 1. 将项目推送到GitHub
 
 ```bash
-# 下载二进制文件
-wget https://github.com/TING-HiuYu/IPv6Filter/releases/latest/download/ipv6filter-linux-x86_64-musl
-
-# 重命名并设置权限
-mv ipv6filter-linux-x86_64-musl ipv6filter
-chmod +x ipv6filter
-
-# 创建配置文件
-mkdir -p /etc/ipv6filter
-cp config.toml /etc/ipv6filter/
-
-# 运行
-sudo ./ipv6filterash
 cd /Users/hiuyuting/Code/DNS
 
 # 初始化git仓库（如果还没有）
@@ -48,29 +64,44 @@ git push -u origin main
 
 GitHub Actions会自动构建以下版本：
 
-- `ipv6filter-linux-x86_64` - 适用于大多数Linux发行版
-- `ipv6filter-linux-x86_64-musl` - 静态链接版本，适用于任何Linux系统
-- `ipv6filter-macos-arm64` - macOS Apple Silicon
-- `ipv6filter-macos-x86_64` - macOS Intel
+- **跨平台二进制文件**: Linux (x86_64/aarch64), Windows (x86_64), macOS (x86_64/Apple Silicon)
+- **Docker镜像**: 多架构支持 (linux/amd64, linux/arm64)
+- **Release资源**: 包含所有平台的二进制文件和Docker镜像tar文件
 
-### 3. 在Debian服务器上部署
+### 3. 构建完成后的文件
 
-推荐使用静态链接版本 `dns-server-linux-x86_64-musl`：
+构建完成后，Release中会包含：
+
+#### 二进制文件
+- `ipv6filter-linux-x86_64` - Linux x86_64版本
+- `ipv6filter-linux-x86_64-musl` - Linux x86_64静态链接版本（推荐）
+- `ipv6filter-linux-aarch64` - Linux ARM64版本
+- `ipv6filter-windows-x86_64.exe` - Windows x86_64版本
+- `ipv6filter-macos-x86_64` - macOS Intel版本
+- `ipv6filter-macos-aarch64` - macOS Apple Silicon版本
+
+#### Docker镜像
+- **Container Registry**: `ghcr.io/ting-hiuyu/ipv6filter:latest`
+- **Docker文件**: `ipv6filter-docker-image.tar` (可下载并本地导入)
+
+### 4. Linux服务器部署
+
+推荐使用静态链接版本 `ipv6filter-linux-x86_64-musl`：
 
 ```bash
 # 下载二进制文件
-wget https://github.com/TING-HiuYu/IPv6Filter/releases/latest/download/dns-server-linux-x86_64-musl
+wget https://github.com/TING-HiuYu/IPv6Filter/releases/latest/download/ipv6filter-linux-x86_64-musl
 
 # 重命名并设置权限
-mv dns-server-linux-x86_64-musl dns-server
-chmod +x dns-server
+mv ipv6filter-linux-x86_64-musl ipv6filter
+chmod +x ipv6filter
 
 # 创建配置文件
-mkdir -p /etc/dns-server
-cp config.toml /etc/dns-server/
+sudo mkdir -p /etc/ipv6filter
+sudo cp config.toml /etc/ipv6filter/
 
-# 运行
-sudo ./dns-server
+# 运行测试
+sudo ./ipv6filter
 ```
 
 ### 4. 使用自动部署脚本

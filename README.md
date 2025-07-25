@@ -72,7 +72,16 @@ docker run -d \
 #### Docker环境变量
 
 - `UPSTREAM_DNS`: 上游DNS服务器列表，用逗号分隔（例如："223.5.5.5:53,8.8.8.8:53"）
+- `LISTEN_ADDR`: DNS服务器监听地址（默认："0.0.0.0:53"）
+- `FILTER_ENABLED`: 是否启用IPv6过滤（true/false，默认：true）
 - `RUST_LOG`: 日志级别（error, warn, info, debug, trace）
+
+也可以下载Docker镜像文件：
+从[Releases页面](https://github.com/TING-HiuYu/IPv6Filter/releases)下载`ipv6filter-docker-image.tar`文件，然后：
+```bash
+docker load < ipv6filter-docker-image.tar
+docker run -d --name ipv6filter -p 53:53/udp ipv6filter:latest
+```
 
 ## 配置说明
 

@@ -45,9 +45,18 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
+        file: docker_related/Dockerfile
         platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        outputs: type=docker,dest=/tmp/ipv6filter-docker-image.tar
+
+    - name: Upload Docker image as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ipv6filter-docker-image
+        path: /tmp/ipv6filter-docker-image.tar
+        retention-days: 30

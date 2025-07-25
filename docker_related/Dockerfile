@@ -6,6 +6,9 @@ WORKDIR /app
 # 复制源码
 COPY . .
 
+# 使用Docker版本的main.rs
+COPY docker_related/main_docker.rs src/main.rs
+
 # 构建release版本
 RUN cargo build --release
 
@@ -24,7 +27,7 @@ RUN useradd -r -s /bin/false ipv6filter
 
 # 复制二进制文件和启动脚本
 COPY --from=builder /app/target/release/ipv6filter /usr/local/bin/ipv6filter
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY docker_related/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # 设置权限
 RUN chown ipv6filter:ipv6filter /usr/local/bin/ipv6filter && \

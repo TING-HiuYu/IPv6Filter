@@ -1,10 +1,10 @@
-use std::net::SocketAddr;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use std::path::PathBuf;
 use std::fs;
 
 use anyhow::{Result, Context};
-use log::{debug, info, warn};
+use log::{debug, info, warn, error};
 use serde::{Deserialize, Serialize};
 use tokio::net::UdpSocket;
 use trust_dns_proto::op::{Message, OpCode, ResponseCode};
@@ -61,37 +61,18 @@ impl Default for Config {
     }
 }
 
-/// 获取配置文件路径
+/// 获取配置文件路径（Docker版本）
 fn get_config_path() -> PathBuf {
-    if cfg!(target_os = "linux") {
-        PathBuf::from("/etc/ipv6filter/config.toml")
-    } else if cfg!(target_os = "windows") {
-        // Windows: 可执行文件同目录
-        std::env::current_exe()
-            .unwrap_or_else(|_| PathBuf::from("."))
-            .parent()
-            .unwrap_or(&PathBuf::from("."))
-            .join("config.toml")
-    } else if cfg!(target_os = "macos") {
-        // macOS: 可执行文件同目录
-        std::env::current_exe()
-            .unwrap_or_else(|_| PathBuf::from("."))
-            .parent()
-            .unwrap_or(&PathBuf::from("."))
-            .join("config.toml")
-    } else {
-        // 其他系统: 当前目录
-        PathBuf::from("config.toml")
-    }
+    PathBuf::from("/etc/ipv6filter/config.toml")
 }
 
-/// 加载配置文件（普通版本 - 不支持Docker环境变量）
+/// 加载配置文件（Docker版本 - 支持环境变量）
 fn load_config() -> Result<Config> {
     let config_path = get_config_path();
     
     info!("尝试加载配置文件: {}", config_path.display());
     
-    if config_path.exists() {
+    let mut config = if config_path.exists() {
         let content = fs::read_to_string(&config_path)
             .with_context(|| format!("无法读取配置文件: {}", config_path.display()))?;
         
@@ -99,11 +80,40 @@ fn load_config() -> Result<Config> {
             .with_context(|| format!("配置文件格式错误: {}", config_path.display()))?;
         
         info!("成功加载配置文件");
-        Ok(config)
+        config
     } else {
         warn!("配置文件不存在，使用默认配置: {}", config_path.display());
-        Ok(Config::default())
+        Config::default()
+    };
+    
+    // Docker环境变量支持
+    if let Ok(upstream_dns) = std::env::var("UPSTREAM_DNS") {
+        if !upstream_dns.is_empty() {
+            info!("Docker环境: 使用环境变量中的上游DNS: {}", upstream_dns);
+            config.server.upstream_servers = upstream_dns
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+        }
     }
+    
+    // 支持其他Docker环境变量
+    if let Ok(listen_addr) = std::env::var("LISTEN_ADDR") {
+        if !listen_addr.is_empty() {
+            info!("Docker环境: 使用环境变量中的监听地址: {}", listen_addr);
+            config.server.listen_addr = listen_addr;
+        }
+    }
+    
+    if let Ok(filter_enabled) = std::env::var("FILTER_ENABLED") {
+        if let Ok(enabled) = filter_enabled.parse::<bool>() {
+            info!("Docker环境: 设置过滤开关: {}", enabled);
+            config.filtering.enabled = enabled;
+        }
+    }
+    
+    Ok(config)
 }
 
 /// DNS服务器配置
@@ -167,7 +177,7 @@ impl DnsServer {
     /// 启动DNS服务器
     pub async fn start(&self) -> Result<()> {
         let socket = Arc::new(UdpSocket::bind(self.config.listen_addr).await?);
-        info!("IPv6Filter DNS服务器启动，监听地址: {}", self.config.listen_addr);
+        info!("IPv6Filter Docker版本启动，监听地址: {}", self.config.listen_addr);
 
         let mut buf = [0u8; 512];
         loop {
@@ -340,21 +350,21 @@ async fn main() -> Result<()> {
     // 初始化日志
     env_logger::init();
 
-    info!("IPv6Filter DNS服务器启动中...");
+    info!("IPv6Filter Docker版本启动中...");
     
     // 加载配置
     let config = load_config().context("无法加载配置")?;
     let server_config = DnsServerConfig::try_from(config.clone()).context("配置转换失败")?;
 
-    info!("IPv6Filter DNS服务器配置:");
+    info!("IPv6Filter Docker版本配置:");
     info!("  监听地址: {}", server_config.listen_addr);
     info!("  上游服务器: {:?}", server_config.upstream_servers);
     info!("  IPv6过滤: {}", server_config.filter_ipv6);
-    info!("  配置文件: {}", get_config_path().display());
+    info!("  运行环境: Docker容器");
 
     let server = DnsServer::new(server_config)?;
     
-    info!("IPv6Filter DNS服务器启动成功！");
+    info!("IPv6Filter Docker版本启动成功！");
     server.start().await?;
 
     Ok(())
