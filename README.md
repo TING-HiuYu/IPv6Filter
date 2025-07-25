@@ -1,6 +1,6 @@
-# Smart DNS Server
+# 双栈域名过滤器
 
-一个用Rust编写的智能DNS服务器，能够自动过滤双栈域名的IPv6记录，减少IPv6连接延迟问题。
+鉴于某些网站存在奇奇怪怪的IPv6支持问题，然后现在的大部分系统都是优先IPv6。这里用Rust编写了一个DNS服务器，用于自动丢弃上游IPv6的解析，然后返回给下游。
 
 ## 功能特点
 
@@ -118,24 +118,6 @@ cargo build --release
 sudo ./target/release/dns-server
 ```
 
-### 跨平台编译
-
-查看[BUILD.md](BUILD.md)了解如何使用GitHub Actions进行自动构建。
-
-## 系统要求
-
-- **内存**: 最少16MB RAM
-- **网络**: 53/UDP端口访问权限
-- **权限**: 需要root权限绑定53端口
-
 ## 许可证
 
 MIT License
-
-## 贡献
-
-欢迎提交Issue和Pull Request！
-
-## 说明
-
-本项目专门用于解决双栈网络环境下IPv6连接速度慢的问题。通过智能过滤双栈域名的AAAA记录，可以强制使用IPv4连接，提升网络访问速度，同时保留纯IPv6网站的正常访问。
