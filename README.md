@@ -242,7 +242,9 @@ sudo ./target/release/ipv6filter
 
 MIT License
 
-## 贡献
+## AI声明
+
+项目中的Github Action和md文件是用AI生成的
 
 欢迎提交Issue和Pull Request！
 
