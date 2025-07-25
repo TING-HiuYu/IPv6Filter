@@ -91,7 +91,7 @@ fn load_config() -> Result<Config> {
     
     info!("尝试加载配置文件: {}", config_path.display());
     
-    if config_path.exists() {
+    let mut config = if config_path.exists() {
         let content = fs::read_to_string(&config_path)
             .with_context(|| format!("无法读取配置文件: {}", config_path.display()))?;
         
@@ -99,11 +99,28 @@ fn load_config() -> Result<Config> {
             .with_context(|| format!("配置文件格式错误: {}", config_path.display()))?;
         
         info!("成功加载配置文件");
-        Ok(config)
+        config
     } else {
         warn!("配置文件不存在，使用默认配置: {}", config_path.display());
-        Ok(Config::default())
+        Config::default()
+    };
+    
+    // Docker环境变量支持 - 检查是否在容器中运行
+    if std::path::Path::new("/.dockerenv").exists() {
+        // 检查UPSTREAM_DNS环境变量
+        if let Ok(upstream_dns) = std::env::var("UPSTREAM_DNS") {
+            if !upstream_dns.is_empty() {
+                info!("Docker环境: 使用环境变量中的上游DNS: {}", upstream_dns);
+                config.server.upstream_servers = upstream_dns
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+            }
+        }
     }
+    
+    Ok(config)
 }
 
 /// DNS服务器配置

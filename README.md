@@ -1,6 +1,16 @@
-# 双栈域名过滤器
+# IPv6Filter - 双栈域名过滤器
 
 鉴于某些网站存在奇奇怪怪的IPv6支持问题，然后现在的大部分系统都是优先IPv6。这里用Rust编写了一个DNS服务器，用于自动丢弃上游对于双栈域名的AAAA记录解析，然后返回给下游。
+
+## 功能特点
+
+- 🚀 **双栈过滤**: 对于同时有A和AAAA记录的双栈域名，自动丢弃AAAA记录
+- 🌐 **纯IPv6保留**: 对于只有AAAA记录的纯IPv6域名，正常返回IPv6地址
+- ⚡ **高性能**: 基于Tokio异步运行时，支持高并发
+- 🔧 **灵活配置**: 支持TOML配置文件，跨平台路径自动检测
+- 📦 **多平台支持**: 支持Linux、macOS、Windows等多个平台
+- 🐳 **Docker支持**: 提供Docker镜像，便于部署
+- 🔒 **安全运行**: systemd服务集成，非特权用户运行
 
 ## 工作原理
 
@@ -29,35 +39,102 @@ sudo ./deploy.sh
 
 ### 使用Docker
 
+基本运行：
 ```bash
 docker run -d \
-  --name dns-server \
+  --name ipv6filter \
   -p 53:53/udp \
   --restart unless-stopped \
   ghcr.io/ting-hiuyu/ipv6filter:latest
 ```
 
+自定义上游DNS服务器：
+```bash
+docker run -d \
+  --name ipv6filter \
+  -p 53:53/udp \
+  -e UPSTREAM_DNS="1.1.1.1:53,8.8.8.8:53" \
+  --restart unless-stopped \
+  ghcr.io/ting-hiuyu/ipv6filter:latest
+```
+
+完整配置示例：
+```bash
+docker run -d \
+  --name ipv6filter \
+  -p 53:53/udp \
+  -e UPSTREAM_DNS="223.5.5.5:53,114.114.114.114:53,1.1.1.1:53" \
+  -e RUST_LOG=debug \
+  --restart unless-stopped \
+  ghcr.io/ting-hiuyu/ipv6filter:latest
+```
+
+#### Docker环境变量
+
+- `UPSTREAM_DNS`: 上游DNS服务器列表，用逗号分隔（例如："223.5.5.5:53,8.8.8.8:53"）
+- `RUST_LOG`: 日志级别（error, warn, info, debug, trace）
+
 ## 配置说明
 
-编辑`config.toml`文件来配置DNS服务器：
+IPv6Filter会根据运行平台自动选择配置文件路径：
+- **Linux**: `/etc/ipv6filter/config.toml`
+- **Windows**: `可执行文件目录/config.toml`
+- **macOS**: `可执行文件目录/config.toml`
+
+编辑`config.toml`文件来配置IPv6Filter：
 
 ```toml
-[server]
-bind_address = "0.0.0.0:53"
-upstream_dns = "223.5.5.5:53"
-timeout_ms = 5000
+# IPv6Filter配置文件
 
+[server]
+# 监听地址和端口
+listen_addr = "0.0.0.0:53"
+
+# 上游DNS服务器列表
+upstream_servers = [
+    "223.5.5.5:53",      # 阿里DNS
+    "114.114.114.114:53", # 114DNS
+    "8.8.8.8:53",        # Google DNS
+]
+
+# IPv6过滤配置
 [filtering]
-enable_ipv6_filtering = true
-filter_dual_stack = true
+# 是否启用IPv6记录过滤
+enabled = true
+
+# 过滤策略
+strategy = "dual_stack_only"
 
 [logging]
+# 日志级别
 level = "info"
+
+# 是否记录DNS查询统计
+enable_stats = true
 ```
 
 ## 管理服务
 
-使用提供的管理脚本：
+### systemd服务管理（Linux）
+
+```bash
+# 查看状态
+sudo systemctl status ipv6filter
+
+# 查看日志
+sudo journalctl -u ipv6filter -f
+
+# 重启服务
+sudo systemctl restart ipv6filter
+
+# 停止服务
+sudo systemctl stop ipv6filter
+
+# 编辑配置
+sudo nano /etc/ipv6filter/config.toml
+```
+
+### 手动管理脚本
 
 ```bash
 # 启动服务
@@ -93,6 +170,39 @@ dig @127.0.0.1 6.ipw.cn AAAA
 dig @127.0.0.1 google.com A
 ```
 
+## 部署选项
+
+### 方式一：自动部署脚本（推荐）
+适用于Linux服务器，自动安装systemd服务：
+```bash
+wget https://raw.githubusercontent.com/TING-HiuYu/IPv6Filter/main/deploy.sh
+chmod +x deploy.sh
+sudo ./deploy.sh
+```
+
+### 方式二：Docker部署
+```bash
+# 基本部署
+docker run -d \
+  --name ipv6filter \
+  -p 53:53/udp \
+  --restart unless-stopped \
+  ghcr.io/ting-hiuyu/ipv6filter:latest
+
+# 自定义上游DNS
+docker run -d \
+  --name ipv6filter \
+  -p 53:53/udp \
+  -e UPSTREAM_DNS="1.1.1.1:53,8.8.8.8:53" \
+  --restart unless-stopped \
+  ghcr.io/ting-hiuyu/ipv6filter:latest
+```
+
+### 方式三：手动二进制部署
+1. 从[Releases页面](https://github.com/TING-HiuYu/IPv6Filter/releases)下载对应平台的二进制文件
+2. 推荐下载`ipv6filter-linux-x86_64-musl`（静态链接，无依赖）
+3. 设置执行权限并运行
+
 ## 开发
 
 ### 本地构建
@@ -106,9 +216,27 @@ cd IPv6Filter
 cargo build --release
 
 # 运行
-sudo ./target/release/dns-server
+sudo ./target/release/ipv6filter
 ```
+
+### 跨平台编译
+
+查看[BUILD.md](BUILD.md)了解如何使用GitHub Actions进行自动构建。
+
+## 系统要求
+
+- **内存**: 最少16MB RAM
+- **网络**: 53/UDP端口访问权限
+- **权限**: 需要root权限绑定53端口（或使用非特权端口）
 
 ## 许可证
 
 MIT License
+
+## 贡献
+
+欢迎提交Issue和Pull Request！
+
+## 说明
+
+本项目专门用于解决双栈网络环境下IPv6连接速度慢的问题。通过智能过滤双栈域名的AAAA记录，可以强制使用IPv4连接，提升网络访问速度，同时保留纯IPv6网站的正常访问。

@@ -2,9 +2,22 @@
 
 ## 使用GitHub Actions自动构建
 
-### 1. 将项目推送到GitHub
+### 1. 将项推荐使用静态链接版本 `ipv6filter-linux-x86_64-musl`：
 
 ```bash
+# 下载二进制文件
+wget https://github.com/TING-HiuYu/IPv6Filter/releases/latest/download/ipv6filter-linux-x86_64-musl
+
+# 重命名并设置权限
+mv ipv6filter-linux-x86_64-musl ipv6filter
+chmod +x ipv6filter
+
+# 创建配置文件
+mkdir -p /etc/ipv6filter
+cp config.toml /etc/ipv6filter/
+
+# 运行
+sudo ./ipv6filterash
 cd /Users/hiuyuting/Code/DNS
 
 # 初始化git仓库（如果还没有）
@@ -35,10 +48,10 @@ git push -u origin main
 
 GitHub Actions会自动构建以下版本：
 
-- `dns-server-linux-x86_64` - 适用于大多数Linux发行版
-- `dns-server-linux-x86_64-musl` - 静态链接版本，适用于任何Linux系统
-- `dns-server-macos-arm64` - macOS Apple Silicon
-- `dns-server-macos-x86_64` - macOS Intel
+- `ipv6filter-linux-x86_64` - 适用于大多数Linux发行版
+- `ipv6filter-linux-x86_64-musl` - 静态链接版本，适用于任何Linux系统
+- `ipv6filter-macos-arm64` - macOS Apple Silicon
+- `ipv6filter-macos-x86_64` - macOS Intel
 
 ### 3. 在Debian服务器上部署
 
@@ -91,7 +104,7 @@ docker pull ghcr.io/ting-hiuyu/ipv6filter:latest
 
 # 运行容器
 docker run -d \
-  --name dns-server \
+  --name ipv6filter \
   -p 53:53/udp \
   --restart unless-stopped \
   ghcr.io/ting-hiuyu/ipv6filter:latest
