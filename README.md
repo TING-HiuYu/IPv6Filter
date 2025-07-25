@@ -30,7 +30,7 @@ sudo ./deploy.sh
 ### 使用预编译二进制文件
 
 1. 从[Releases页面](https://github.com/TING-HiuYu/IPv6Filter/releases)下载适合你系统的二进制文件
-2. 配置`config.toml`文件
+2. 下载`config.toml`文件并自行配置，具体参考下面的**配置说明**
 3. 运行DNS服务器
 
 #### 平台选择指南
