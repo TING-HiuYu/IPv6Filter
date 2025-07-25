@@ -17,19 +17,13 @@ jobs:
     strategy:
       matrix:
         include:
-          # Linux x86_64 (for Debian server)
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            artifact_name: ipv6filter
-            asset_name: ipv6filter-linux-x86_64
-          
-          # Linux x86_64 with musl (static linking) - 推荐
+          # Linux x86_64 with musl (static linking)
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             artifact_name: ipv6filter
-            asset_name: ipv6filter-linux-x86_64-musl
+            asset_name: ipv6filter-linux-x86_64
           
-          # Linux ARM64 - 基础版本
+          # Linux ARM64 (aarch64)
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             artifact_name: ipv6filter
@@ -151,7 +145,7 @@ jobs:
       with:
         context: .
         file: docker_related/Dockerfile
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
@@ -189,7 +183,6 @@ jobs:
       with:
         files: |
           ipv6filter-linux-x86_64/ipv6filter-*
-          ipv6filter-linux-x86_64-musl/ipv6filter-*
           ipv6filter-linux-aarch64/ipv6filter-*
           ipv6filter-windows-x86_64/ipv6filter-*
           ipv6filter-macos-x86_64/ipv6filter-*
@@ -205,14 +198,14 @@ jobs:
           - Docker用户可以使用 `docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}` 或下载 `ipv6filter-docker-image.tar` 文件
           
           ### 支持的平台
-          - **Linux**: x86_64 / aarch64 (ARM64)
+          - **Linux**: x86_64 (静态链接musl版本) / aarch64 (ARM64)
           - **Windows**: x86_64
           - **macOS**: x86_64 (Intel) / aarch64 (Apple Silicon)
-          - **Docker**: 多架构支持 (linux/amd64, linux/arm64)
+          - **Docker**: linux/amd64
           
           ### 推荐版本
-          - **Linux服务器**: 推荐使用 `ipv6filter-linux-x86_64-musl` (静态链接，兼容性最好)
-          - **Raspberry Pi**: 使用 `ipv6filter-linux-aarch64`
+          - **Linux x86_64服务器**: 使用 `ipv6filter-linux-x86_64` (静态链接，兼容性最好)
+          - **Raspberry Pi/ARM单板机**: 使用 `ipv6filter-linux-aarch64`
           - **一般用户**: 选择对应操作系统和架构的版本
           
         draft: false
