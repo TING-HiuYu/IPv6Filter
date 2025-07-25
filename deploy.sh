@@ -63,7 +63,7 @@ download_binary() {
     log_info "获取最新版本信息..."
     
     # 获取最新release的下载URL
-    DOWNLOAD_URL=$(curl -s https://api.github.com/repos/YOUR_USERNAME/DNS/releases/latest | \
+    DOWNLOAD_URL=$(curl -s https://api.github.com/repos/TING-HiuYu/IPv6Filter/releases/latest | \
                    grep "browser_download_url.*${BINARY_NAME}" | \
                    cut -d '"' -f 4)
     
