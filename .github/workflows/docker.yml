@@ -60,3 +60,27 @@ jobs:
         name: ipv6filter-docker-image
         path: /tmp/ipv6filter-docker-image.tar
         retention-days: 30
+
+  cleanup-docker-cache:
+    name: Cleanup Docker Cache
+    needs: [build-docker]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      actions: write
+    steps:
+    - name: Cleanup Docker Build Cache
+      run: |
+        echo "清理Docker构建Cache..."
+        # 获取所有cache条目，特别是Docker相关的
+        caches=$(gh api repos/${{ github.repository }}/actions/caches --paginate | jq -r '.actions_caches[] | select(.key | contains("buildkit")) | .id')
+        
+        # 删除Docker构建cache
+        for cache_id in $caches; do
+          echo "删除Docker cache ID: $cache_id"
+          gh api repos/${{ github.repository }}/actions/caches/$cache_id -X DELETE || echo "删除cache $cache_id 失败"
+        done
+        
+        echo "Docker Cache清理完成！"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

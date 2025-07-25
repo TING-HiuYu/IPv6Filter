@@ -191,6 +191,15 @@ GitHub Actions会在以下情况触发构建：
 
 你可以在GitHub仓库的"Actions"标签页查看构建状态和日志。
 
+### 自动Cache清理
+
+为了节省GitHub Actions存储空间，工作流会在Release发布完成后自动清理所有构建缓存：
+
+- **build.yml**: 清理Rust编译缓存和工具链缓存
+- **docker.yml**: 清理Docker构建缓存（buildkit缓存）
+
+这确保每次Release后都有一个干净的环境，避免缓存占用过多空间。
+
 ### 手动触发构建
 
 如果需要手动触发构建（例如测试或调试），可以：
@@ -200,3 +209,11 @@ GitHub Actions会在以下情况触发构建：
 3. 点击"Run workflow"按钮
 4. 选择分支（通常是main）
 5. 点击绿色的"Run workflow"按钮
+
+### Cache管理
+
+如果你想手动清理缓存，可以：
+
+1. 进入GitHub仓库的"Settings" → "Actions" → "Caches"
+2. 查看和删除特定的缓存条目
+3. 或者创建一个新的tag来触发自动缓存清理
