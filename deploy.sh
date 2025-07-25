@@ -7,10 +7,32 @@ set -e
 
 # 配置变量
 RELEASE_URL="https://github.com/TING-HiuYu/IPv6Filter/releases/latest"
-BINARY_NAME="ipv6filter-linux-x86_64-musl"
 INSTALL_DIR="/usr/local/bin"
 CONFIG_DIR="/etc/ipv6filter"
 SERVICE_NAME="ipv6filter"
+
+# 自动检测架构和确定二进制文件名
+detect_binary_name() {
+    local arch=$(uname -m)
+    local os=$(uname -s | tr '[:upper:]' '[:lower:]')
+    
+    case "$arch" in
+        x86_64|amd64)
+            BINARY_NAME="ipv6filter-linux-x86_64"
+            ;;
+        aarch64|arm64)
+            BINARY_NAME="ipv6filter-linux-aarch64"
+            ;;
+        *)
+            log_error "不支持的架构: $arch"
+            log_info "支持的架构: x86_64, aarch64"
+            exit 1
+            ;;
+    esac
+    
+    log_info "检测到架构: $arch"
+    log_info "将下载二进制文件: $BINARY_NAME"
+}
 
 # 颜色输出
 RED='\033[0;31m'
@@ -39,14 +61,18 @@ check_root() {
     fi
 }
 
-# 检查系统架构
-check_architecture() {
-    ARCH=$(uname -m)
-    if [[ "$ARCH" != "x86_64" ]]; then
-        log_error "不支持的架构: $ARCH"
-        log_info "此脚本仅支持x86_64架构"
+# 检查系统和架构
+check_system() {
+    # 检查操作系统
+    if [[ "$(uname -s)" != "Linux" ]]; then
+        log_error "此脚本仅支持Linux系统"
         exit 1
     fi
+    
+    # 检测二进制文件名
+    detect_binary_name
+    
+    log_info "系统检查通过"
 }
 
 # 安装依赖
@@ -235,7 +261,7 @@ main() {
     log_info "开始部署IPv6Filter..."
     
     check_root
-    check_architecture
+    check_system
     install_dependencies
     download_binary
     install_binary

@@ -1,0 +1,49 @@
+# 使用预构建二进制文件的Dockerfile - 支持多架构 (linux/amd64, linux/arm64)
+FROM debian:bookworm-slim
+
+# 获取目标架构信息
+ARG TARGETPLATFORM
+RUN echo "Building for platform: $TARGETPLATFORM"
+
+# 安装必要的运行时依赖
+RUN apt-get update && \
+    apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建非root用户
+RUN useradd -r -s /bin/false ipv6filter
+
+# 复制预构建的二进制文件
+# GitHub Actions会根据平台将正确的二进制文件放在正确的目录中
+COPY linux-*/ipv6filter-linux-* /tmp/
+RUN case "$TARGETPLATFORM" in \
+        "linux/amd64") \
+            cp /tmp/ipv6filter-linux-x86_64 /usr/local/bin/ipv6filter ;; \
+        "linux/arm64") \
+            cp /tmp/ipv6filter-linux-aarch64 /usr/local/bin/ipv6filter ;; \
+        *) \
+            echo "Unsupported platform: $TARGETPLATFORM" && exit 1 ;; \
+    esac && \
+    chmod +x /usr/local/bin/ipv6filter && \
+    rm -f /tmp/ipv6filter-linux-*
+
+# 设置权限
+RUN chown ipv6filter:ipv6filter /usr/local/bin/ipv6filter
+
+# 创建配置目录（可选，因为程序会自动使用环境变量）
+RUN mkdir -p /etc/ipv6filter && \
+    chown ipv6filter:ipv6filter /etc/ipv6filter
+
+# 切换到非root用户
+USER ipv6filter
+
+# 暴露DNS端口
+EXPOSE 53/udp
+
+# 设置环境变量
+ENV RUST_LOG=info
+ENV UPSTREAM_DNS="223.5.5.5:53,114.114.114.114:53,8.8.8.8:53"
+
+# 运行IPv6Filter（直接运行二进制文件，支持环境变量配置）
+CMD ["/usr/local/bin/ipv6filter"]
