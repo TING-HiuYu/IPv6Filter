@@ -5,9 +5,8 @@
 ```
 IPv6Filter/
 ├── src/
-│   └── main.rs              # 独立版本主程序（支持跨平台配置文件）
+│   └── main.rs              # 统一的主程序（支持配置文件和环境变量）
 ├── docker_related/
-│   ├── main_docker.rs       # Docker版本主程序（支持环境变量）
 │   ├── Dockerfile           # Docker构建文件
 │   └── docker-entrypoint.sh # Docker启动脚本
 ├── .github/workflows/
@@ -16,18 +15,60 @@ IPv6Filter/
 └── config.toml             # 默认配置文件
 ```
 
-## 版本差异
+## 配置优先级
 
-### 独立版本 (`src/main.rs`)
-- 适用于直接在系统上运行
-- 支持跨平台配置文件路径检测
-- Linux: `/etc/ipv6filter/config.toml`
-- Windows/macOS: `可执行文件目录/config.toml`
+IPv6Filter现在使用更加合理的配置系统：
 
-### Docker版本 (`docker_related/main_docker.rs`)
-- 专为容器化部署设计
-- 支持环境变量配置：`UPSTREAM_DNS`、`LISTEN_ADDR`、`FILTER_ENABLED`
-- 自动生成配置文件或使用环境变量
+**配置优先级**: 配置文件 > 环境变量 > 默认值
+
+- **配置文件存在**: 直接使用配置文件，**忽略所有环境变量**
+- **配置文件不存在**: 使用环境变量，如果环境变量也没有则使用默认值
+
+### 配置文件路径
+- **Linux**: `/etc/ipv6filter/config.toml`
+- **Windows/macOS**: `可执行文件目录/config.toml`
+
+### 支持的环境变量
+- `UPSTREAM_DNS`: 上游DNS服务器列表，用逗号分隔（例如："1.1.1.1:53,8.8.8.8:53"）
+- `LISTEN_ADDR`: DNS服务器监听地址（例如："0.0.0.0:53"）
+- `FILTER_ENABLED`: 是否启用IPv6过滤（true/false）
+- `RUST_LOG`: 日志级别（error, warn, info, debug, trace）
+
+### 配置示例
+
+#### 使用配置文件
+```toml
+[server]
+listen_addr = "0.0.0.0:53"
+upstream_servers = ["223.5.5.5:53", "8.8.8.8:53"]
+
+[filtering]
+enabled = true
+strategy = "dual_stack_only"
+
+[logging]
+level = "info"
+enable_stats = true
+```
+
+#### 使用环境变量
+```bash
+export UPSTREAM_DNS="1.1.1.1:53,8.8.8.8:53"
+export LISTEN_ADDR="0.0.0.0:53"
+export FILTER_ENABLED="true"
+export RUST_LOG="info"
+./ipv6filter
+```
+
+#### Docker环境变量
+```bash
+docker run -d \
+  --name ipv6filter \
+  -p 53:53/udp \
+  -e UPSTREAM_DNS="223.5.5.5:53,114.114.114.114:53" \
+  -e FILTER_ENABLED="true" \
+  ghcr.io/ting-hiuyu/ipv6filter:latest
+```
 
 ## 使用GitHub Actions自动构建
 

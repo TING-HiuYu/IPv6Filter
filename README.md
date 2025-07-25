@@ -59,12 +59,26 @@ docker run -d \
   ghcr.io/ting-hiuyu/ipv6filter:latest
 ```
 
-#### Docker环境变量
+#### 环境变量支持
+
+IPv6Filter支持通过环境变量配置（适用于Docker和独立部署）：
 
 - `UPSTREAM_DNS`: 上游DNS服务器列表，用逗号分隔（例如："223.5.5.5:53,8.8.8.8:53"）
 - `LISTEN_ADDR`: DNS服务器监听地址（默认："0.0.0.0:53"）
 - `FILTER_ENABLED`: 是否启用IPv6过滤（true/false，默认：true）
 - `RUST_LOG`: 日志级别（error, warn, info, debug, trace）
+
+**配置优先级**: 
+- **配置文件存在**: 使用配置文件，忽略环境变量
+- **配置文件不存在**: 使用环境变量，如果环境变量也没有则使用默认值
+
+#### 独立部署环境变量示例
+```bash
+export UPSTREAM_DNS="1.1.1.1:53,8.8.8.8:53"
+export LISTEN_ADDR="0.0.0.0:53"
+export FILTER_ENABLED="true"
+./ipv6filter
+```
 
 也可以下载Docker镜像文件：
 从[Releases页面](https://github.com/TING-HiuYu/IPv6Filter/releases)下载`ipv6filter-docker-image.tar`文件，然后：
@@ -75,7 +89,7 @@ docker run -d --name ipv6filter -p 53:53/udp ipv6filter:latest
 
 ## 配置说明
 
-IPv6Filter会根据运行平台自动选择配置文件路径：
+IPv6Filter使用统一的配置系统，会根据运行平台自动选择配置文件路径：
 - **Linux**: `/etc/ipv6filter/config.toml`
 - **Windows**: `可执行文件目录/config.toml`
 - **macOS**: `可执行文件目录/config.toml`

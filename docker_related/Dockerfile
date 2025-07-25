@@ -6,10 +6,7 @@ WORKDIR /app
 # 复制源码
 COPY . .
 
-# 使用Docker版本的main.rs
-COPY docker_related/main_docker.rs src/main.rs
-
-# 构建release版本
+# 构建release版本（现在统一使用src/main.rs，支持环境变量）
 RUN cargo build --release
 
 # 运行时镜像 - 使用最小的Linux发行版

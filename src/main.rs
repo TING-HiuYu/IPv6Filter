@@ -85,24 +85,56 @@ fn get_config_path() -> PathBuf {
     }
 }
 
-/// 加载配置文件（普通版本 - 不支持Docker环境变量）
+/// 加载配置文件（配置文件优先，然后环境变量，最后默认值）
 fn load_config() -> Result<Config> {
     let config_path = get_config_path();
     
     info!("尝试加载配置文件: {}", config_path.display());
     
     if config_path.exists() {
+        // 配置文件存在，直接使用配置文件
         let content = fs::read_to_string(&config_path)
             .with_context(|| format!("无法读取配置文件: {}", config_path.display()))?;
         
         let config: Config = toml::from_str(&content)
             .with_context(|| format!("配置文件格式错误: {}", config_path.display()))?;
         
-        info!("成功加载配置文件");
+        info!("成功加载配置文件，忽略环境变量");
         Ok(config)
     } else {
-        warn!("配置文件不存在，使用默认配置: {}", config_path.display());
-        Ok(Config::default())
+        // 配置文件不存在，使用环境变量或默认配置
+        warn!("配置文件不存在，尝试使用环境变量: {}", config_path.display());
+        
+        let mut config = Config::default();
+        let mut used_env_vars = Vec::new();
+        
+        // 从环境变量读取配置
+        if let Ok(upstream_dns) = std::env::var("UPSTREAM_DNS") {
+            config.server.upstream_servers = upstream_dns
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+            used_env_vars.push("UPSTREAM_DNS");
+        }
+        
+        if let Ok(listen_addr) = std::env::var("LISTEN_ADDR") {
+            config.server.listen_addr = listen_addr;
+            used_env_vars.push("LISTEN_ADDR");
+        }
+        
+        if let Ok(filter_enabled) = std::env::var("FILTER_ENABLED") {
+            config.filtering.enabled = filter_enabled.to_lowercase() == "true";
+            used_env_vars.push("FILTER_ENABLED");
+        }
+        
+        if used_env_vars.is_empty() {
+            info!("未找到环境变量，使用默认配置");
+        } else {
+            info!("从环境变量读取配置: {}", used_env_vars.join(", "));
+        }
+        
+        Ok(config)
     }
 }
 
@@ -350,7 +382,13 @@ async fn main() -> Result<()> {
     info!("  监听地址: {}", server_config.listen_addr);
     info!("  上游服务器: {:?}", server_config.upstream_servers);
     info!("  IPv6过滤: {}", server_config.filter_ipv6);
-    info!("  配置文件: {}", get_config_path().display());
+    info!("  配置文件路径: {}", get_config_path().display());
+    
+    if get_config_path().exists() {
+        info!("  配置来源: 配置文件");
+    } else {
+        info!("  配置来源: 环境变量 + 默认值");
+    }
 
     let server = DnsServer::new(server_config)?;
     
