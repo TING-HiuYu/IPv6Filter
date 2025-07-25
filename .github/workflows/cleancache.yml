@@ -1,0 +1,95 @@
+name: Manual Cache Cleanup
+
+on:
+  workflow_dispatch:  # 只允许手动触发
+
+jobs:
+  cleanup-all-cache:
+    name: Clean All Cache
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+    - name: Cleanup All GitHub Actions Cache
+      run: |
+        echo "开始清理所有GitHub Actions Cache..."
+        
+        # 获取所有cache条目
+        echo "获取cache列表..."
+        caches=$(gh api repos/${{ github.repository }}/actions/caches --paginate | jq -r '.actions_caches[].id')
+        
+        if [ -z "$caches" ]; then
+          echo "没有找到任何cache，可能已经全部清理完毕"
+          exit 0
+        fi
+        
+        cache_count=$(echo "$caches" | wc -l)
+        echo "找到 $cache_count 个cache条目"
+        
+        # 删除所有cache
+        counter=0
+        for cache_id in $caches; do
+          counter=$((counter + 1))
+          echo "[$counter/$cache_count] 删除cache ID: $cache_id"
+          
+          if gh api repos/${{ github.repository }}/actions/caches/$cache_id -X DELETE 2>/dev/null; then
+            echo "  ✅ 成功删除"
+          else
+            echo "  ❌ 删除失败"
+          fi
+          
+          # 避免API限制，每删除5个cache后休息1秒
+          if [ $((counter % 5)) -eq 0 ]; then
+            echo "  💤 休息1秒..."
+            sleep 1
+          fi
+        done
+        
+        echo ""
+        echo "🎉 Cache清理完成！总共处理了 $cache_count 个cache条目"
+        
+        # 验证清理结果
+        echo ""
+        echo "验证清理结果..."
+        remaining_caches=$(gh api repos/${{ github.repository }}/actions/caches --paginate | jq -r '.actions_caches[].id' | wc -l)
+        echo "剩余cache数量: $remaining_caches"
+        
+        if [ "$remaining_caches" -eq 0 ]; then
+          echo "✅ 所有cache已成功清理！"
+        else
+          echo "⚠️  仍有 $remaining_caches 个cache未清理，可能需要再次运行"
+        fi
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  cleanup-specific-cache:
+    name: Clean Specific Cache Types
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+    - name: Cleanup Rust and Docker Cache
+      run: |
+        echo "清理特定类型的Cache..."
+        
+        # 清理Rust相关cache
+        echo "清理Rust编译cache..."
+        rust_caches=$(gh api repos/${{ github.repository }}/actions/caches --paginate | jq -r '.actions_caches[] | select(.key | contains("cargo") or contains("rust") or contains("target")) | .id')
+        
+        for cache_id in $rust_caches; do
+          echo "删除Rust cache ID: $cache_id"
+          gh api repos/${{ github.repository }}/actions/caches/$cache_id -X DELETE || echo "删除失败"
+        done
+        
+        # 清理Docker相关cache
+        echo "清理Docker构建cache..."
+        docker_caches=$(gh api repos/${{ github.repository }}/actions/caches --paginate | jq -r '.actions_caches[] | select(.key | contains("buildkit") or contains("docker")) | .id')
+        
+        for cache_id in $docker_caches; do
+          echo "删除Docker cache ID: $cache_id"
+          gh api repos/${{ github.repository }}/actions/caches/$cache_id -X DELETE || echo "删除失败"
+        done
+        
+        echo "特定类型Cache清理完成！"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
