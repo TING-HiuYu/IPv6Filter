@@ -2,15 +2,11 @@
 
 鉴于某些网站存在奇奇怪怪的IPv6支持问题，然后现在的大部分系统都是优先IPv6。这里用Rust编写了一个DNS服务器，用于自动丢弃上游对于双栈域名的AAAA记录解析，然后返回给下游。
 
-## 功能特点
+## 平台支持
 
-- 🚀 **双栈过滤**: 对于同时有A和AAAA记录的双栈域名，自动丢弃AAAA记录
-- 🌐 **纯IPv6保留**: 对于只有AAAA记录的纯IPv6域名，正常返回IPv6地址
-- ⚡ **高性能**: 基于Tokio异步运行时，支持高并发
-- 🔧 **灵活配置**: 支持TOML配置文件和环境变量，跨平台路径自动检测
-- 📦 **多平台支持**: 支持Linux x86_64/ARM64、macOS、Windows等主流平台
-- 🐳 **Docker支持**: 提供多架构Docker镜像 (linux/amd64, linux/arm64)，便于部署
-- 🔒 **安全运行**: systemd服务集成，非特权用户运行
+- **Linux**: x86_64, ARM64(树莓派之类的）
+- **macOS**: intel(x86_64), AppleSilicon(arm64)
+- 🐳 **Docker支持**: linux/amd64, linux/arm64
 
 ## 工作原理
 
@@ -21,6 +17,15 @@
 3. 如果不存在A记录（纯IPv6域名），则正常返回AAAA记录
 
 ## 快速开始
+
+### 推荐 - 使用自动部署脚本（只限于Linux，建议使用debian/ubuntu）
+
+```bash
+# 下载并运行部署脚本
+wget https://raw.githubusercontent.com/TING-HiuYu/IPv6Filter/main/deploy.sh
+chmod +x deploy.sh
+sudo ./deploy.sh
+```
 
 ### 使用预编译二进制文件
 
@@ -34,15 +39,6 @@
 - **Windows x86_64**: 使用 `ipv6filter-windows-x86_64.exe`
 - **macOS Intel**: 使用 `ipv6filter-macos-x86_64`
 - **macOS Apple Silicon**: 使用 `ipv6filter-macos-aarch64`
-
-### 使用自动部署脚本（推荐）
-
-```bash
-# 下载并运行部署脚本
-wget https://raw.githubusercontent.com/TING-HiuYu/IPv6Filter/main/deploy.sh
-chmod +x deploy.sh
-sudo ./deploy.sh
-```
 
 ### 使用Docker
 
