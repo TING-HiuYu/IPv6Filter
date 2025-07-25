@@ -2,6 +2,16 @@
 
 鉴于某些网站存在奇奇怪怪的IPv6支持问题，然后现在的大部分系统都是优先IPv6。这里用Rust编写了一个DNS服务器，用于自动丢弃上游对于双栈域名的AAAA记录解析，然后返回给下游。
 
+## 功能特点
+
+- 🚀 **双栈过滤**: 对于同时有A和AAAA记录的双栈域名，自动丢弃AAAA记录
+- 🌐 **纯IPv6保留**: 对于只有AAAA记录的纯IPv6域名，正常返回IPv6地址
+- ⚡ **高性能**: 基于Tokio异步运行时，支持高并发
+- 🔧 **灵活配置**: 支持TOML配置文件和环境变量，跨平台路径自动检测
+- 📦 **多平台支持**: 支持Linux、macOS、Windows等多个平台，包含x86_64和ARM64架构
+- 🐳 **Docker支持**: 提供多架构Docker镜像，便于部署
+- 🔒 **安全运行**: systemd服务集成，非特权用户运行
+
 ## 工作原理
 
 当DNS服务器接收到AAAA查询时：
@@ -17,6 +27,14 @@
 1. 从[Releases页面](https://github.com/TING-HiuYu/IPv6Filter/releases)下载适合你系统的二进制文件
 2. 配置`config.toml`文件
 3. 运行DNS服务器
+
+#### 平台选择指南
+- **Linux x86_64服务器**: 推荐 `ipv6filter-linux-x86_64-musl`（静态链接，兼容性最好）
+- **Raspberry Pi/ARM单板机**: 使用 `ipv6filter-linux-aarch64-musl`
+- **Windows x86_64**: 使用 `ipv6filter-windows-x86_64.exe`
+- **Windows ARM64**: 使用 `ipv6filter-windows-aarch64.exe`（适用于ARM PC）
+- **macOS Intel**: 使用 `ipv6filter-macos-x86_64`
+- **macOS Apple Silicon**: 使用 `ipv6filter-macos-aarch64`
 
 ### 使用自动部署脚本（推荐）
 

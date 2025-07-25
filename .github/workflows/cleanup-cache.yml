@@ -61,35 +61,3 @@ jobs:
         fi
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  cleanup-specific-cache:
-    name: Clean Specific Cache Types
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-    - name: Cleanup Rust and Docker Cache
-      run: |
-        echo "清理特定类型的Cache..."
-        
-        # 清理Rust相关cache
-        echo "清理Rust编译cache..."
-        rust_caches=$(gh api repos/${{ github.repository }}/actions/caches --paginate | jq -r '.actions_caches[] | select(.key | contains("cargo") or contains("rust") or contains("target")) | .id')
-        
-        for cache_id in $rust_caches; do
-          echo "删除Rust cache ID: $cache_id"
-          gh api repos/${{ github.repository }}/actions/caches/$cache_id -X DELETE || echo "删除失败"
-        done
-        
-        # 清理Docker相关cache
-        echo "清理Docker构建cache..."
-        docker_caches=$(gh api repos/${{ github.repository }}/actions/caches --paginate | jq -r '.actions_caches[] | select(.key | contains("buildkit") or contains("docker")) | .id')
-        
-        for cache_id in $docker_caches; do
-          echo "删除Docker cache ID: $cache_id"
-          gh api repos/${{ github.repository }}/actions/caches/$cache_id -X DELETE || echo "删除失败"
-        done
-        
-        echo "特定类型Cache清理完成！"
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

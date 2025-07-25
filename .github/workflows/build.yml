@@ -7,6 +7,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build:
@@ -27,11 +29,35 @@ jobs:
             artifact_name: ipv6filter
             asset_name: ipv6filter-linux-x86_64-musl
           
-          # macOS ARM64 (for your M4 Mac)
+          # Linux ARM64
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact_name: ipv6filter
+            asset_name: ipv6filter-linux-aarch64
+          
+          # Linux ARM64 with musl (static linking)
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            artifact_name: ipv6filter
+            asset_name: ipv6filter-linux-aarch64-musl
+          
+          # Windows x86_64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: ipv6filter
+            asset_name: ipv6filter-windows-x86_64
+          
+          # Windows ARM64
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            artifact_name: ipv6filter
+            asset_name: ipv6filter-windows-aarch64
+          
+          # macOS ARM64 (Apple Silicon)
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact_name: ipv6filter
-            asset_name: ipv6filter-macos-arm64
+            asset_name: ipv6filter-macos-aarch64
           
           # macOS Intel
           - os: macos-latest
@@ -50,10 +76,24 @@ jobs:
         targets: ${{ matrix.target }}
 
     - name: Install cross-compilation tools (Linux musl)
-      if: matrix.target == 'x86_64-unknown-linux-musl'
+      if: contains(matrix.target, 'musl')
       run: |
         sudo apt-get update
         sudo apt-get install -y musl-tools
+
+    - name: Install cross-compilation tools (Linux ARM64)
+      if: matrix.target == 'aarch64-unknown-linux-gnu'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu
+
+    - name: Install cross-compilation tools (Linux ARM64 musl)
+      if: matrix.target == 'aarch64-unknown-linux-musl'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu musl-tools
+        # 创建musl交叉编译器链接
+        sudo ln -sf /usr/bin/aarch64-linux-gnu-gcc /usr/local/bin/aarch64-linux-musl-gcc
 
     - name: Build
       run: cargo build --release --target ${{ matrix.target }}
@@ -88,9 +128,60 @@ jobs:
     - name: Run tests
       run: cargo test
 
+  build-docker:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: docker_related/Dockerfile
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        outputs: type=oci,dest=/tmp/ipv6filter-docker-image.tar
+
+    - name: Upload Docker image as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ipv6filter-docker-image
+        path: /tmp/ipv6filter-docker-image.tar
+        retention-days: 30
+
   release:
     name: Create Release
-    needs: [build, test]
+    needs: [build, test, build-docker]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -110,11 +201,14 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          linux-x86_64/ipv6filter-*
-          linux-aarch64/ipv6filter-*
-          windows-x86_64/ipv6filter-*
-          macos-x86_64/ipv6filter-*
-          macos-aarch64/ipv6filter-*
+          ipv6filter-linux-x86_64/ipv6filter-*
+          ipv6filter-linux-x86_64-musl/ipv6filter-*
+          ipv6filter-linux-aarch64/ipv6filter-*
+          ipv6filter-linux-aarch64-musl/ipv6filter-*
+          ipv6filter-windows-x86_64/ipv6filter-*
+          ipv6filter-windows-aarch64/ipv6filter-*
+          ipv6filter-macos-x86_64/ipv6filter-*
+          ipv6filter-macos-aarch64/ipv6filter-*
           docker-artifacts/ipv6filter-docker-image.tar
         tag_name: ${{ github.ref_name }}
         name: IPv6Filter ${{ github.ref_name }}
@@ -126,10 +220,15 @@ jobs:
           - Docker用户可以使用 `docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}` 或下载 `ipv6filter-docker-image.tar` 文件
           
           ### 支持的平台
-          - Linux x86_64 / aarch64
-          - Windows x86_64
-          - macOS x86_64 / Apple Silicon
-          - Docker (multi-arch)
+          - **Linux**: x86_64 / aarch64 (包含静态链接musl版本)
+          - **Windows**: x86_64 / aarch64 (ARM64)
+          - **macOS**: x86_64 (Intel) / aarch64 (Apple Silicon)
+          - **Docker**: 多架构支持 (linux/amd64, linux/arm64)
+          
+          ### 推荐版本
+          - **Linux服务器**: 推荐使用 `ipv6filter-linux-x86_64-musl` (静态链接，兼容性最好)
+          - **Raspberry Pi**: 使用 `ipv6filter-linux-aarch64` 或 `ipv6filter-linux-aarch64-musl`
+          - **Windows ARM设备**: 使用 `ipv6filter-windows-aarch64.exe`
           
         draft: false
         prerelease: false
@@ -142,18 +241,33 @@ jobs:
     permissions:
       actions: write
     steps:
-    - name: Cleanup Build Cache
+    - name: Cleanup All Build Cache
       run: |
         echo "清理GitHub Actions Cache..."
         # 获取所有cache条目
         caches=$(gh api repos/${{ github.repository }}/actions/caches --paginate | jq -r '.actions_caches[].id')
         
-        # 删除所有cache
+        if [ -z "$caches" ]; then
+          echo "没有找到任何cache"
+          exit 0
+        fi
+        
+        cache_count=$(echo "$caches" | wc -l)
+        echo "找到 $cache_count 个cache条目"
+        
+        # 删除所有cache（包括Rust构建和Docker构建缓存）
+        counter=0
         for cache_id in $caches; do
-          echo "删除cache ID: $cache_id"
+          counter=$((counter + 1))
+          echo "[$counter/$cache_count] 删除cache ID: $cache_id"
           gh api repos/${{ github.repository }}/actions/caches/$cache_id -X DELETE || echo "删除cache $cache_id 失败"
+          
+          # 避免API限制
+          if [ $((counter % 5)) -eq 0 ]; then
+            sleep 1
+          fi
         done
         
-        echo "Cache清理完成！"
+        echo "🎉 所有Cache清理完成！"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

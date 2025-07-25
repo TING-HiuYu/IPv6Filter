@@ -10,8 +10,8 @@ IPv6Filter/
 │   ├── Dockerfile           # Docker构建文件
 │   └── docker-entrypoint.sh # Docker启动脚本
 ├── .github/workflows/
-│   ├── build.yml           # 多平台构建工作流
-│   └── docker.yml          # Docker镜像构建工作流
+│   ├── build.yml            # 统一的构建工作流（包含多平台构建、Docker镜像、Release）
+│   └── cleanup-cache.yml    # 手动cache清理工作流
 └── config.toml             # 默认配置文件
 ```
 
@@ -116,14 +116,23 @@ GitHub Actions会自动构建以下版本：
 #### 二进制文件
 - `ipv6filter-linux-x86_64` - Linux x86_64版本
 - `ipv6filter-linux-x86_64-musl` - Linux x86_64静态链接版本（推荐）
-- `ipv6filter-linux-aarch64` - Linux ARM64版本
+- `ipv6filter-linux-aarch64` - Linux ARM64版本（适用于ARM服务器）
+- `ipv6filter-linux-aarch64-musl` - Linux ARM64静态链接版本
 - `ipv6filter-windows-x86_64.exe` - Windows x86_64版本
+- `ipv6filter-windows-aarch64.exe` - Windows ARM64版本（适用于ARM PC）
 - `ipv6filter-macos-x86_64` - macOS Intel版本
 - `ipv6filter-macos-aarch64` - macOS Apple Silicon版本
 
 #### Docker镜像
 - **Container Registry**: `ghcr.io/ting-hiuyu/ipv6filter:latest`
 - **Docker文件**: `ipv6filter-docker-image.tar` (可下载并本地导入)
+- **支持架构**: linux/amd64, linux/arm64
+
+#### 平台选择指南
+- **Linux服务器**: 推荐 `ipv6filter-linux-x86_64-musl`（静态链接，兼容性最好）
+- **Raspberry Pi/ARM单板机**: 使用 `ipv6filter-linux-aarch64-musl`
+- **Windows ARM设备**: 使用 `ipv6filter-windows-aarch64.exe`
+- **容器部署**: 使用Docker镜像（自动选择合适架构）
 
 ### 4. Linux服务器部署
 
@@ -193,10 +202,11 @@ GitHub Actions会在以下情况触发构建：
 
 ### 自动Cache清理
 
-为了节省GitHub Actions存储空间，工作流会在Release发布完成后自动清理所有构建缓存：
+为了节省GitHub Actions存储空间，统一的工作流会在Release发布完成后自动清理所有构建缓存：
 
-- **build.yml**: 清理Rust编译缓存和工具链缓存
-- **docker.yml**: 清理Docker构建缓存（buildkit缓存）
+- **Rust编译缓存**: 清理cargo、rust、target相关缓存
+- **Docker构建缓存**: 清理buildkit、docker相关缓存
+- **其他缓存**: 清理所有GitHub Actions产生的缓存
 
 这确保每次Release后都有一个干净的环境，避免缓存占用过多空间。
 
@@ -205,15 +215,20 @@ GitHub Actions会在以下情况触发构建：
 如果需要手动触发构建（例如测试或调试），可以：
 
 1. 进入GitHub仓库的"Actions"标签页
-2. 选择要运行的工作流（"Build and Release"或"Docker Build"）
+2. 选择"Build and Release"工作流
 3. 点击"Run workflow"按钮
 4. 选择分支（通常是main）
 5. 点击绿色的"Run workflow"按钮
 
 ### Cache管理
 
-如果你想手动清理缓存，可以：
+#### 自动清理
+每次创建新tag时，工作流会自动清理所有缓存。
 
-1. 进入GitHub仓库的"Settings" → "Actions" → "Caches"
-2. 查看和删除特定的缓存条目
-3. 或者创建一个新的tag来触发自动缓存清理
+#### 手动清理
+如果你想立即清理现有缓存，可以：
+
+1. 进入GitHub仓库的"Actions"标签页
+2. 选择"Manual Cache Cleanup"工作流
+3. 点击"Run workflow"按钮运行手动清理
+4. 或者进入"Settings" → "Actions" → "Caches"手动删除特定缓存
