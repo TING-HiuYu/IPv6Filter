@@ -52,7 +52,7 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-        outputs: type=docker,dest=/tmp/ipv6filter-docker-image.tar
+        outputs: type=oci,dest=/tmp/ipv6filter-docker-image.tar
 
     - name: Upload Docker image as artifact
       uses: actions/upload-artifact@v4
