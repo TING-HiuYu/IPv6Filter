@@ -7,7 +7,24 @@ IPv6Filter/
 ├── src/
 │   └── main.rs              # 统一的主程序（支持配置文件和环境变量）
 ├── docker_related/
-│   ├── Dockerfile           # Docker构建文件
+│ #### 二进制文件
+- `ipv6filter-linux-x86_64` - Linux x86_64版本
+- `ipv6filter-linux-x86_64-musl` - Linux x86_64静态链接版本（推荐）
+- `ipv6filter-linux-aarch64` - Linux ARM64版本（适用于ARM服务器/树莓派）
+- `ipv6filter-windows-x86_64.exe` - Windows x86_64版本
+- `ipv6filter-macos-x86_64` - macOS Intel版本
+- `ipv6filter-macos-aarch64` - macOS Apple Silicon版本
+
+#### Docker镜像
+- **Container Registry**: `ghcr.io/ting-hiuyu/ipv6filter:latest`
+- **Docker文件**: `ipv6filter-docker-image.tar` (可下载并本地导入)
+- **支持架构**: linux/amd64, linux/arm64
+
+#### 平台选择指南
+- **Linux服务器**: 推荐 `ipv6filter-linux-x86_64-musl`（静态链接，兼容性最好）
+- **Raspberry Pi/ARM单板机**: 使用 `ipv6filter-linux-aarch64`
+- **一般桌面用户**: 选择对应操作系统和架构的版本
+- **容器部署**: 使用Docker镜像（自动选择合适架构）       # Docker构建文件
 │   └── docker-entrypoint.sh # Docker启动脚本
 ├── .github/workflows/
 │   ├── build.yml            # 统一的构建工作流（包含多平台构建、Docker镜像、Release）

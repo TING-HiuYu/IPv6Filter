@@ -8,7 +8,7 @@
 - 🌐 **纯IPv6保留**: 对于只有AAAA记录的纯IPv6域名，正常返回IPv6地址
 - ⚡ **高性能**: 基于Tokio异步运行时，支持高并发
 - 🔧 **灵活配置**: 支持TOML配置文件和环境变量，跨平台路径自动检测
-- 📦 **多平台支持**: 支持Linux、macOS、Windows等多个平台，包含x86_64和ARM64架构
+- 📦 **多平台支持**: 支持Linux、macOS、Windows等多个平台，包含ARM64架构
 - 🐳 **Docker支持**: 提供多架构Docker镜像，便于部署
 - 🔒 **安全运行**: systemd服务集成，非特权用户运行
 
@@ -30,9 +30,8 @@
 
 #### 平台选择指南
 - **Linux x86_64服务器**: 推荐 `ipv6filter-linux-x86_64-musl`（静态链接，兼容性最好）
-- **Raspberry Pi/ARM单板机**: 使用 `ipv6filter-linux-aarch64-musl`
+- **Raspberry Pi/ARM单板机**: 使用 `ipv6filter-linux-aarch64`
 - **Windows x86_64**: 使用 `ipv6filter-windows-x86_64.exe`
-- **Windows ARM64**: 使用 `ipv6filter-windows-aarch64.exe`（适用于ARM PC）
 - **macOS Intel**: 使用 `ipv6filter-macos-x86_64`
 - **macOS Apple Silicon**: 使用 `ipv6filter-macos-aarch64`
 
