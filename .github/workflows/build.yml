@@ -145,7 +145,7 @@ jobs:
       with:
         context: .
         file: docker_related/Dockerfile
-        platforms: linux/amd64
+        platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
@@ -201,11 +201,11 @@ jobs:
           - **Linux**: x86_64 (静态链接musl版本) / aarch64 (ARM64)
           - **Windows**: x86_64
           - **macOS**: x86_64 (Intel) / aarch64 (Apple Silicon)
-          - **Docker**: linux/amd64
+          - **Docker**: 多架构支持 (linux/amd64, linux/arm64)
           
           ### 推荐版本
           - **Linux x86_64服务器**: 使用 `ipv6filter-linux-x86_64` (静态链接，兼容性最好)
-          - **Raspberry Pi/ARM单板机**: 使用 `ipv6filter-linux-aarch64`
+          - **Raspberry Pi/ARM单板机**: 使用 `ipv6filter-linux-aarch64` 或 Docker镜像
           - **一般用户**: 选择对应操作系统和架构的版本
           
         draft: false

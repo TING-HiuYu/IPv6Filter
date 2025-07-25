@@ -8,8 +8,8 @@
 - 🌐 **纯IPv6保留**: 对于只有AAAA记录的纯IPv6域名，正常返回IPv6地址
 - ⚡ **高性能**: 基于Tokio异步运行时，支持高并发
 - 🔧 **灵活配置**: 支持TOML配置文件和环境变量，跨平台路径自动检测
-- 📦 **多平台支持**: 支持Linux x86_64、macOS、Windows等主流平台
-- 🐳 **Docker支持**: 提供linux/amd64 Docker镜像，便于部署
+- 📦 **多平台支持**: 支持Linux x86_64/ARM64、macOS、Windows等主流平台
+- 🐳 **Docker支持**: 提供多架构Docker镜像 (linux/amd64, linux/arm64)，便于部署
 - 🔒 **安全运行**: systemd服务集成，非特权用户运行
 
 ## 工作原理
@@ -103,6 +103,13 @@ export FILTER_ENABLED="true"
 docker load < ipv6filter-docker-image.tar
 docker run -d --name ipv6filter -p 53:53/udp ipv6filter:latest
 ```
+
+#### Docker多架构支持
+Docker镜像支持以下架构：
+- `linux/amd64` - x86_64服务器
+- `linux/arm64` - ARM64设备（如树莓派4、Apple Silicon等）
+
+Docker会自动选择适合当前系统的架构，无需手动指定。
 
 ## 配置说明
 

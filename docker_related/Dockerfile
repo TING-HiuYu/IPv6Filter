@@ -1,5 +1,10 @@
-# 多阶段构建Dockerfile
+# 多阶段构建Dockerfile - 支持多架构 (linux/amd64, linux/arm64)
 FROM rust:1.82 as builder
+
+# 获取目标架构信息
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+RUN echo "Building on $BUILDPLATFORM, targeting $TARGETPLATFORM"
 
 WORKDIR /app
 
