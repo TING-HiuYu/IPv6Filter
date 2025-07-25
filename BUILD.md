@@ -145,8 +145,17 @@ docker run -d \
 
 GitHub Actions会在以下情况触发构建：
 
-- 推送到main分支（构建但不发布）
-- 创建新的tag（构建并发布Release）
-- 创建Pull Request（测试构建）
+- 创建新的tag（自动构建并发布Release）
+- 手动触发工作流（在GitHub Actions页面点击"Run workflow"按钮）
 
 你可以在GitHub仓库的"Actions"标签页查看构建状态和日志。
+
+### 手动触发构建
+
+如果需要手动触发构建（例如测试或调试），可以：
+
+1. 进入GitHub仓库的"Actions"标签页
+2. 选择要运行的工作流（"Build and Release"或"Docker Build"）
+3. 点击"Run workflow"按钮
+4. 选择分支（通常是main）
+5. 点击绿色的"Run workflow"按钮
