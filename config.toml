@@ -1,0 +1,31 @@
+# 智能DNS服务器配置
+
+[server]
+# 监听地址和端口
+listen_addr = "127.0.0.1:8053"
+
+# 上游DNS服务器列表
+upstream_servers = [
+    "223.5.5.5:53"  # 114 DNS（国内）
+]
+
+# IPv6过滤配置
+[filtering]
+# 是否启用IPv6记录过滤
+enabled = true
+
+# 过滤策略
+# - "dual_stack_only": 只对双栈域名过滤IPv6记录
+# - "all": 过滤所有IPv6记录
+# - "none": 不过滤任何记录
+strategy = "dual_stack_only"
+
+[logging]
+# 日志级别: error, warn, info, debug, trace
+level = "info"
+
+# 是否记录DNS查询统计
+enable_stats = true
+
+# 日志文件路径（可选，不设置则输出到控制台）
+# file_path = "/var/log/dns-server.log"

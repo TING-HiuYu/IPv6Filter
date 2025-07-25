@@ -1,0 +1,127 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # Linux x86_64 (for Debian server)
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: dns-server
+            asset_name: dns-server-linux-x86_64
+          
+          # Linux x86_64 with musl (static linking)
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            artifact_name: dns-server
+            asset_name: dns-server-linux-x86_64-musl
+          
+          # macOS ARM64 (for your M4 Mac)
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: dns-server
+            asset_name: dns-server-macos-arm64
+          
+          # macOS Intel
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: dns-server
+            asset_name: dns-server-macos-x86_64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
+
+    - name: Install cross-compilation tools (Linux musl)
+      if: matrix.target == 'x86_64-unknown-linux-musl'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y musl-tools
+
+    - name: Build
+      run: cargo build --release --target ${{ matrix.target }}
+
+    - name: Rename binary
+      shell: bash
+      run: |
+        if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+          mv target/${{ matrix.target }}/release/${{ matrix.artifact_name }}.exe target/${{ matrix.target }}/release/${{ matrix.asset_name }}.exe
+        else
+          mv target/${{ matrix.target }}/release/${{ matrix.artifact_name }} target/${{ matrix.target }}/release/${{ matrix.asset_name }}
+        fi
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.asset_name }}
+        path: |
+          target/${{ matrix.target }}/release/${{ matrix.asset_name }}*
+          !target/${{ matrix.target }}/release/*.d
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Run tests
+      run: cargo test
+
+  release:
+    name: Create Release
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          */dns-server-*
+        body: |
+          ## DNS Server Release
+          
+          ### 支持的平台
+          
+          - **dns-server-linux-x86_64**: Linux x86_64 (动态链接，适用于大多数Linux发行版)
+          - **dns-server-linux-x86_64-musl**: Linux x86_64 (静态链接，适用于任何Linux系统)
+          - **dns-server-macos-arm64**: macOS Apple Silicon (M1/M2/M3/M4)
+          - **dns-server-macos-x86_64**: macOS Intel
+          
+          ### 部署说明
+          
+          1. 下载适合你系统的二进制文件
+          2. 添加执行权限：`chmod +x dns-server-*`
+          3. 运行：`./dns-server-*`
+          
+          推荐用于Debian服务器：**dns-server-linux-x86_64-musl** (静态链接，无依赖)
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
