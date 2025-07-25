@@ -180,7 +180,7 @@ EOF
     
     # 创建dns-server用户
     if ! id "dns-server" &>/dev/null; then
-        useradd -r -s /bin/false dns-server
+        /usr/sbin/useradd -r -s /bin/false dns-server
         log_info "已创建dns-server用户"
     fi
     
